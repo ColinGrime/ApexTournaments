@@ -1,4 +1,6 @@
 import fs from 'node:fs';
+import { ChannelType, Guild } from 'discord.js';
+import { client } from './index.js';
 import { DiscordID, ApexID, playerIDs } from '../assets/config.js';
 import { hasValidTrackers } from './stats.js';
 import { Participant, update } from './participant.js'
@@ -16,11 +18,11 @@ interface Timer {
 
 // Initialize server data and tournaments.
 let guildData: object = {};
-let tournaments: object = {};
+const tournaments: object = {};
 
 // Check if server data file exists already, if so get the data.
-if (fs.existsSync('apex-data.json')) {
-    fs.readFile('apex-data.json', 'utf-8', (err, data) => {
+if (fs.existsSync('guild-data.json')) {
+    fs.readFile('guild-data.json', 'utf-8', (err, data) => {
         if (err) {
             throw err;
         } else {
@@ -35,14 +37,15 @@ if (fs.existsSync('apex-data.json')) {
  */
 function addGuildData(guildID: string, data: GuildData) {
     guildData[guildID] = guildData;
-    fs.writeFile('apex-data.json', JSON.stringify(guildData), 'utf-8', (err) => {
+    fs.writeFile('guild-data.json', JSON.stringify(guildData), 'utf-8', (err) => {
         if (err) {
             throw err;
         }
     });
 }
 
-class Tournament {
+export class Tournament {
+    guild: Guild
     guildID: string
     isReady: boolean = false
     timeToWait: number
@@ -57,6 +60,9 @@ class Tournament {
         if (guildID in guildData) {
             this.isReady = true;
         }
+
+        // Get Guild object.
+        this.guild = client.guilds.cache.get(this.guildID);
     }
 
     /**
@@ -64,10 +70,16 @@ class Tournament {
      * @param channelID tournament channel ID
      * @param categoryID tournament category ID
      */
-    init(channelID: string, categoryID: string) {
+    async init(channelID: string, categoryID: string) {
         addGuildData(this.guildID, {
             "tournamentChannelID": channelID,
             "tournamentCategoryID": categoryID
+        });
+
+        // Creates Team channels in the category.
+        this.guild.channels.create({
+            name: 'Team 1',
+            type: ChannelType.GuildVoice
         });
 
         this.isReady = true;
@@ -183,4 +195,14 @@ class Tournament {
             console.log('');
         }
     }
+}
+
+export function getTournament(guildID: string) {
+    if (guildID in tournaments) {
+        return tournaments[guildID];
+    }
+
+    const tournament: Tournament = new Tournament(guildID);
+    tournaments[guildID] = tournament;
+    return tournament;
 }
