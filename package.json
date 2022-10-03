@@ -1,18 +1,21 @@
 {
-  "name": "apex-stalker",
-  "version": "1.0.0",
-  "description": "",
-  "main": "src/index.js",
-  "author": "ColinGrime",
-  "license": "ISC",
-  "type": "module",
-  "dependencies": {
-    "@discordjs/rest": "^1.1.0",
-    "axios": "^0.27.2",
-    "discord.js": "^14.3.0",
-    "dotenv": "^16.0.2"
-  },
-  "devDependencies": {
-    "eslint": "^8.23.1"
-  }
+    "name": "apex-stalker",
+    "version": "1.0.0",
+    "description": "",
+    "main": "src/index.js",
+    "author": "ColinGrime",
+    "license": "ISC",
+    "type": "module",
+    "scripts": {
+        "start": "tsc & node ."
+    },
+    "dependencies": {
+        "@discordjs/rest": "^1.1.0",
+        "axios": "^0.27.2",
+        "discord.js": "^14.3.0",
+        "dotenv": "^16.0.2"
+    },
+    "devDependencies": {
+        "eslint": "^8.23.1"
+    }
 }

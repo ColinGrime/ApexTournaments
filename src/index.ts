@@ -3,6 +3,13 @@ import fs from 'node:fs';
 import { join } from 'node:path';
 import { Client, GatewayIntentBits, Collection } from 'discord.js';
 
+// Define commands collection.
+declare module "discord.js" {
+    export interface Client {
+        commands: Collection<unknown, any>
+    }
+}
+
 // Get the path.
 import { URL } from 'url';
 const __dirname = new URL('.', import.meta.url).pathname;
@@ -25,11 +32,13 @@ for (const file of fs.readdirSync(commandsPath)) {
                 client.commands.set(command.data.name, command);
             })
         }
+        
         continue;
     }
 
-	const command = require(filePath);
-	client.commands.set(command.data.name, command);
+    import(filePath).then(command => {
+        client.commands.set(command.data.name, command);
+    })
 }
 
 // Listen for all commands.

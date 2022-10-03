@@ -1,4 +1,4 @@
-import('dotenv/config');
+import 'dotenv/config';
 import fs from 'node:fs';
 import path from 'node:path';
 import { Routes } from 'discord.js';
@@ -28,5 +28,5 @@ for (const file of commandFiles) {
 
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 rest.put(Routes.applicationCommands(process.env.CLIENT_ID), { body: commands })
-	.then((data) => console.log(`Successfully registered ${data.length} application commands.`))
+	.then((data: any) => console.log(`Successfully registered ${data.length} application commands.`))
 	.catch(console.error);
