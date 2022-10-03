@@ -1,20 +1,22 @@
 import fs from 'node:fs';
-import { GameData, ApexID, Participant } from './participant.js'
+import { DiscordID, ApexID, playerIDs } from '../assets/config.js';
+import { hasValidTrackers } from './stats.js';
+import { Participant, update } from './participant.js'
+import { getTime } from './utils/Utility.js';
 
-interface ServerData {
+interface GuildData {
     tournamentChannelID: string,
     tournamentCategoryID: string
 }
 
-interface Tournament {
+interface Timer {
     startTime: number,
-    endTime: number,
-    participants: Participant[],
+    endTime?: number
 }
 
-let apexData: ServerData[] = [];
-// let tournaments: 
-let isActive: boolean = false;
+// Initialize server data and tournaments.
+let guildData: object = {};
+let tournaments: object = {};
 
 // Check if server data file exists already, if so get the data.
 if (fs.existsSync('apex-data.json')) {
@@ -22,24 +24,18 @@ if (fs.existsSync('apex-data.json')) {
         if (err) {
             throw err;
         } else {
-            apexData = JSON.parse(data);
-            isActive = true;
+            guildData = JSON.parse(data);
         }
     });
-} else {
-    isActive = true;
 }
 
 /**
- * @param serverData server data to add
+ * @param guildID guildID to be added
+ * @param data guildData to be added (channelID, categoryID)
  */
-function addServerData(serverData: ServerData) {
-    if (!isActive) {
-        return;
-    }
-
-    apexData.push(serverData);
-    fs.writeFile('apex-data.json', JSON.stringify(apexData), 'utf-8', (err) => {
+function addGuildData(guildID: string, data: GuildData) {
+    guildData[guildID] = guildData;
+    fs.writeFile('apex-data.json', JSON.stringify(guildData), 'utf-8', (err) => {
         if (err) {
             throw err;
         }
@@ -47,69 +43,144 @@ function addServerData(serverData: ServerData) {
 }
 
 class Tournament {
-    init(guildID, channelID, categoryID) {
-        serverData[guildID] = {
-            "channelID": channelID,
-            "categoryID": categoryID
-        };
+    guildID: string
+    isReady: boolean = false
+    timeToWait: number
+    tournamentTime: Timer
+    participants: Participant[] = []
+
+    constructor(guildID: string) {
+        this.guildID = guildID;
+        tournaments[guildID] = this;
+
+        // If the guild has a tournament channel/category setup, it's already ready for tournaments.
+        if (guildID in guildData) {
+            this.isReady = true;
+        }
     }
 
-    #isTournamentCreated(guildID) {
-        return guildID in this.tournaments;
+    /**
+     * Initializes the channel and category for tournaments.
+     * @param channelID tournament channel ID
+     * @param categoryID tournament category ID
+     */
+    init(channelID: string, categoryID: string) {
+        addGuildData(this.guildID, {
+            "tournamentChannelID": channelID,
+            "tournamentCategoryID": categoryID
+        });
+
+        this.isReady = true;
     }
 
-    create(guildID) {
-        if (this.#isTournamentCreated(null)) {
+    /**
+     * @returns true if a tournament was successfully created
+     */
+    create(): boolean {
+        if (!this.isReady) {
             return false;
         }
 
-        this.tournaments[guildID] = {};
+        // Waits for 30 seconds for players to opt-in.
+        this.timeToWait = getTime(30);
         return true;
     }
 
-    list(guildID) {
-        if (!this.#isTournamentCreated) {
+    /**
+     * @returns list of tournament participants that are opted-in
+     */
+    list() {
+        if (!this.isReady) {
             return null;
         }
 
-        if ('players' in this.tournaments[guildID]) {
-            return this.tournaments[guildID]['players'];
-        } else {
-            return [];
+        const list: DiscordID[] = [];
+        for (const participant of this.participants) {
+            list.push(participant.discordID);
         }
+
+        return list;
     }
 
-    optIn(guildID, username) {
-        const list = this.list(guildID);
-        if (list === null || username in list) {
+    /**
+     * @param discord discordID of the player
+     * @returns a promise that returns true if the player was successfully opted-in
+     */
+    async optIn(discord: string) {
+        if (!(discord in playerIDs)) {
             return false;
         }
 
-        // Check for damage/kill trackers, if no then fail.
-        list.push(username);
-        this.tournaments[guildID]['players'] = list;
+        const discordID: DiscordID = discord as DiscordID;
+        const apexID: ApexID = playerIDs[discord] as ApexID;
+
+        // Check if the user is already opted in to the tournament.
+        const list = this.list();
+        if (list === null || list.includes(discordID)) {
+            return false;
+        }
+
+        // Check if the user has invalid trackers enabled.
+        if (!(await hasValidTrackers(apexID))) {
+            return false;
+        }
+
+        this.participants.push({
+            "discordID": discordID,
+            "apexID": apexID
+        });
         return true;
     }
 
-    optOut(guildID, username) {
-        const list = this.list(guildID);
-        if (list === null || !(username in list)) {
+    /**
+     * @param discord discordID of the player
+     * @returns true if the player was successfully opted-out
+     */
+    optOut(discord: string) {
+        if (!(discord in playerIDs)) {
             return false;
         }
 
-        list.splice(list.indexOf(username), 1);
+        const discordID: DiscordID = discord as DiscordID;
+
+        // Check if the user is not currently opted in to the tournament.
+        const list = this.list();
+        if (list === null || !list.includes(discordID)) {
+            return false;
+        }
+
+        list.splice(list.indexOf(discordID), 1);
         return true;
     }
 
-    start(guildID) {
-        if (this.list(guildID).length < 3) {
+    /**
+     * Starts a tournament.
+     * @returns true if the tournament had enough players to start
+     */
+    start() {
+        if (this.list().length < 3) {
             return false;
         }
 
-        // Start tracking, get initial kills/damage.
+        // Start tracking.
+        this.tournamentTime = {
+            startTime: getTime()
+        };
+
+        this.isReady = false;
+        return true;
     }
 
-    stop(guildID) {
-        // Sends the top kills, damage, and top overall!
+    /**
+     * Stops the tournament and sends tournament info.
+     */
+    stop() {
+        update(this.participants, this.tournamentTime.startTime);
+
+        for (const participant of this.participants) {
+            console.log(`DiscordID${participant.discordID} and`);
+            console.log(participant.gameData);
+            console.log('');
+        }
     }
 }
