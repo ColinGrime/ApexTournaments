@@ -1,13 +1,14 @@
-import { ApexID } from '../assets/config.js';
+import { DiscordID, ApexID } from '../assets/config.js';
 import { getGameData } from './stats.js';
 
 /**
  * Information about a Tournament Participant.
  */
 export interface Participant {
+    discordID: DiscordID,
     apexID: ApexID,
-    gameData: GameData,
-    points: number,
+    gameData?: GameData,
+    points?: number,
 }
 
 /**
