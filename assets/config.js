@@ -1,11 +1,7 @@
-// Eligible DiscordIDs and ApexIDs.
-export type DiscordID = '702825026830991431' | '327863472253566986' | '215917870696103942' | '314885041685790721' | '585968724994031618' | '747161801854156912';
-export type ApexID = '1008108433340' | '1008861119123' | '1006492244156' | '1003182585982' | '1008305005551' | '2379527616';
-
 /**
  * Key: DiscordID, Value: ApexID
  * DiscordID corresponds to the user's ApexID.
- * 
+ *
  * Order: Colin -> Justin -> Reese -> Braden -> Regin -> Nathan.
  */
 export const playerIDs = {
@@ -15,4 +11,4 @@ export const playerIDs = {
     "314885041685790721": "1003182585982",
     "585968724994031618": "1008305005551",
     "747161801854156912": "2379527616"
-}
+};
