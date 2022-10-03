@@ -3,6 +3,8 @@
         "module": "ESNext",
         "target": "ES6",
         "types": ["node"],
-        "moduleResolution": "node"
+        "moduleResolution": "node",
+        "resolveJsonModule": true,
+        "allowSyntheticDefaultImports": true
     }
 }
