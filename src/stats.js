@@ -28,7 +28,7 @@ function getMatchHistory(apexID, startTime) {
  */
 export function hasValidTrackers(apexID) {
     return __awaiter(this, void 0, void 0, function* () {
-        const stats = yield this.getPlayerStats(apexID);
+        const stats = yield getPlayerStats(apexID);
         if (!('legends' in stats) || !('selected' in stats['legends'])) {
             return false;
         }
@@ -50,7 +50,7 @@ export function hasValidTrackers(apexID) {
  */
 export function getGameData(apexID, startTime) {
     return __awaiter(this, void 0, void 0, function* () {
-        const matchHistory = yield this.getMatchHistory(apexID, startTime);
+        const matchHistory = yield getMatchHistory(apexID, startTime);
         if (Object.keys(matchHistory).length === 0) {
             return;
         }
