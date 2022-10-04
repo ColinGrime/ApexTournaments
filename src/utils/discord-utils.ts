@@ -1,4 +1,4 @@
-import { Guild, ChannelType, GuildChannel, TextChannel } from 'discord.js';
+import { Guild, ChannelType, GuildChannel, TextChannel, EmbedBuilder } from 'discord.js';
 
 /**
  * Quick way to create a basic channel.
@@ -43,4 +43,13 @@ export async function renameChannel(guild: Guild, channelID: string, channelName
     }
 
     return channel;
+}
+
+export function createEmbed(footer: string, ...description: string[]): EmbedBuilder {
+    return new EmbedBuilder()
+        .setColor(0x5067B4)
+        .setThumbnail('https://content.uiowa.edu/sites/content.uiowa.edu/files/apex-legends-logo-ftr_175s2k8gp3yw7106ov4jxxiadi.png')
+        .setTitle(':fire: :fire: :fire:     **__Apex Tournament__**     :fire: :fire: :fire:')
+        .setDescription(description.join('​\n'))
+        .setFooter({ text: footer })
 }
