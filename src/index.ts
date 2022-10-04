@@ -2,6 +2,8 @@ import 'dotenv/config';
 import fs from 'node:fs';
 import { join } from 'node:path';
 import { Client, GatewayIntentBits, Collection } from 'discord.js';
+import getCommands from './commands.js';  
+import './tournaments.js';
 
 // Define commands collection.
 declare module "discord.js" {
@@ -12,34 +14,18 @@ declare module "discord.js" {
 
 // Get the path.
 import { URL } from 'url';
-const __dirname = new URL('.', import.meta.url).pathname;
+const dirname = new URL('.', import.meta.url).pathname;
 
 // Create a new client instance
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
-
-// Get all available command files.
+export const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
 client.commands = new Collection();
-const commandsPath = join(__dirname, 'commands');
 
-for (const file of fs.readdirSync(commandsPath)) {
-	const filePath = join(commandsPath, file);
-
-    // Check inside directories for larger commands.
-    if (fs.lstatSync(filePath).isDirectory()) {
-        for (const insideFile of fs.readdirSync(filePath).filter(f => f.endsWith('.js'))) {
-            const insideFilePath = join(filePath, insideFile);
-            import(insideFilePath).then(command => {
-                client.commands.set(command.data.name, command);
-            })
-        }
-        
-        continue;
-    }
-
-    import(filePath).then(command => {
+getCommands().then(commands => {
+    let command: any;
+    for (command of commands) {
         client.commands.set(command.data.name, command);
-    })
-}
+    }
+})
 
 // Listen for all commands.
 client.on('interactionCreate', async interaction => {
@@ -61,7 +47,7 @@ client.on('interactionCreate', async interaction => {
 });
 
 // Get all available event files.
-const eventsPath = join(__dirname, 'events');
+const eventsPath = join(dirname, 'events');
 const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('js'));
 
 // Listen for all events.
