@@ -4,7 +4,8 @@ import { client } from './index.js';
 import { DiscordID, ApexID, playerIDs } from '../assets/config.js';
 import { hasValidTrackers } from './stats.js';
 import { Participant, update } from './participant.js'
-import { getTime } from './utils/Utility.js';
+import { getTime } from './utils/common-utils.js';
+import { createChannel, renameChannel } from './utils/discord-utils.js';
 
 interface GuildData {
     tournamentChannelID: string,
@@ -17,7 +18,7 @@ interface Timer {
 }
 
 // Initialize server data and tournaments.
-let guildData: object = {};
+export let guildData: object = {};
 const tournaments: object = {};
 
 // Check if server data file exists already, if so get the data.
@@ -77,10 +78,9 @@ export class Tournament {
         });
 
         // Creates Team channels in the category.
-        this.guild.channels.create({
-            name: 'Team 1',
-            type: ChannelType.GuildVoice
-        });
+        renameChannel(this.guild, channelID, 'Tournaments', 'News on all Apex Tournaments.');
+        createChannel(this.guild, 'Team 1', ChannelType.GuildVoice, categoryID);
+        createChannel(this.guild, 'Team 2', ChannelType.GuildVoice, categoryID);
 
         this.isReady = true;
     }
