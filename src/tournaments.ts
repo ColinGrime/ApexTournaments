@@ -36,8 +36,8 @@ if (fs.existsSync('guild-data.json')) {
  * @param data guildData to be added (channelID, categoryID)
  */
 function addGuildData(guildID: string, data: GuildData) {
-    guildData[guildID] = guildData;
-    fs.writeFile('guild-data.json', JSON.stringify(guildData), 'utf-8', (err) => {
+    guildData[guildID] = data;
+    fs.writeFile('guild-data.json', JSON.stringify(guildData, null, 2), 'utf-8', (err) => {
         if (err) {
             throw err;
         }
