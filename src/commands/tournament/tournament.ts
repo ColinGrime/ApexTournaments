@@ -1,33 +1,37 @@
-import 'dotenv/config';
 import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { SlashCommandBuilder } from 'discord.js';
 
+// Get the path.
+import { URL } from 'url';
+const dirname = new URL('.', import.meta.url).pathname;
+
 // Main command.
-let data = new SlashCommandBuilder()
+export const data = new SlashCommandBuilder()
     .setName('tournament')
     .setDescription('Command for all tournament actions.');
 
-// Subcommands.
+// Map of all subcommands.
 const subcommands = new Map();
-const subcommandsPath = join(__dirname, 'subcommands');
-const subcommandFiles = readdirSync(subcommandsPath).filter(file => file.endsWith('.js'));
 
-// Registers the various subcommands.
-for (const file of subcommandFiles) {
-    const filePath = join(subcommandsPath, file);
-    import(filePath).then(subcommand => {
+export async function registerSubcommands() {
+    const subcommandsPath = join(dirname, 'subcommands');
+    const subcommandFiles = readdirSync(subcommandsPath).filter(file => file.endsWith('.js'));
+    
+    // Registers the various subcommands.
+    for (const subcommandFile of subcommandFiles) {
+        const subcommandPath = join(subcommandsPath, subcommandFile);
+        const subcommand = await import(subcommandPath);
+
         data.addSubcommand(sub => subcommand.register(sub));
         subcommands.set(subcommand.commandName, subcommand);
-    })
-}
-
-// interactionCreate event
-async function execute(interaction) {
-    const subcommand = interaction.options.getSubcommand();
-    if (subcommands.has(subcommand)) {
-       subcommands.get(subcommand).execute(interaction);
     }
 }
 
-export default { data, execute }
+// interactionCreate event
+export async function execute(interaction) {
+    const subcommand = interaction.options.getSubcommand();
+    if (subcommands.has(subcommand)) {
+       return subcommands.get(subcommand).execute(interaction);
+    }
+}
