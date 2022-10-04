@@ -1,4 +1,4 @@
-import { Guild, ChannelType, GuildChannel } from 'discord.js';
+import { Guild, ChannelType, GuildChannel, TextChannel } from 'discord.js';
 
 /**
  * Quick way to create a basic channel.
@@ -23,5 +23,24 @@ export async function createChannel(guild: Guild, channelName: string, channelTy
     });
 
     // Set the parent and return.
-    return await channel.setParent(categoryID);
+    return channel.setParent(categoryID);
+}
+
+/**
+ * Quick way to rename channels.
+ * @param guild guild to rename the channel in
+ * @param channelID channel to rename
+ * @param channelName new channel name
+ * @param channelTopic new channel topic if applicable
+ * @returns Promise containing channel
+ */
+export async function renameChannel(guild: Guild, channelID: string, channelName: string, channelTopic?: string): Promise<GuildChannel> {
+    const channel: GuildChannel = guild.channels.cache.get(channelID) as GuildChannel;
+    await channel.setName(channelName);
+    
+    if (channelTopic) {
+        return (channel as TextChannel).setTopic(channelTopic);
+    }
+
+    return channel;
 }
