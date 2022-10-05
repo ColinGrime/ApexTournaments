@@ -50,6 +50,6 @@ export function createEmbed(footer: string, ...description: string[]): EmbedBuil
         .setColor(0x5067B4)
         .setThumbnail('https://content.uiowa.edu/sites/content.uiowa.edu/files/apex-legends-logo-ftr_175s2k8gp3yw7106ov4jxxiadi.png')
         .setTitle(':fire: :fire: :fire:     **__Apex Tournament__**     :fire: :fire: :fire:')
-        .setDescription(description.join('​\n'))
+        .setDescription('​\n' + description.join('​\n'))
         .setFooter({ text: footer })
 }

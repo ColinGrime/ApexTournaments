@@ -15,7 +15,6 @@ export function register(subcommand: SlashCommandSubcommandBuilder) {
 export function execute(interaction: CommandInteraction, tournament: Tournament) {
     tournament.create();
     return interaction.reply({ embeds: [createEmbed('30 SECONDS LEFT',
-        '', 
         '**An apex tournament has just been created.**',
         '**Join now or forever be blacklisted.**',
         '',
