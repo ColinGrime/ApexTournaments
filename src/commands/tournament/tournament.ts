@@ -1,6 +1,7 @@
 import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { SlashCommandBuilder } from 'discord.js';
+import { getTournament } from '../../tournaments';
 
 // Get the path.
 import { URL } from 'url';
@@ -32,6 +33,6 @@ export async function registerSubcommands() {
 export async function execute(interaction) {
     const subcommand = interaction.options.getSubcommand();
     if (subcommands.has(subcommand)) {
-       return subcommands.get(subcommand).execute(interaction);
+        return subcommands.get(subcommand).execute(interaction, getTournament(interaction.guildId));
     }
 }
