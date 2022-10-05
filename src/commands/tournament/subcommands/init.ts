@@ -11,7 +11,7 @@ export function register(subcommand: SlashCommandSubcommandBuilder) {
 }
 
 export async function execute(interaction: CommandInteraction, tournament: Tournament) {
-    tournament.init(interaction.channelId, interaction.channel.parentId);
+    await tournament.init(interaction.channelId, interaction.channel.parentId);
     return interaction.reply({
         content: 'Channel has been set as Tournament channel.',
         ephemeral: true
