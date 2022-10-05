@@ -13,8 +13,14 @@ export function register(subcommand: SlashCommandSubcommandBuilder) {
 }
 
 export function execute(interaction: CommandInteraction, tournament: Tournament) {
-    tournament.create();
-    return interaction.reply({ embeds: [createEmbed('30 SECONDS LEFT',
+    if (!tournament.create()) {
+        return interaction.reply({ 
+            content: 'There was an **error** creating the tournament.\nPlease make sure you have initialized a tournament channel first.',
+            ephemeral: true
+        })
+    }
+
+    return interaction.reply({ embeds: [createEmbed(
         '**An apex tournament has just been created.**',
         '**Join now or forever be blacklisted.**',
         '',
@@ -22,5 +28,5 @@ export function execute(interaction: CommandInteraction, tournament: Tournament)
         ':regional_indicator_q::regional_indicator_u::regional_indicator_i::regional_indicator_t: :black_small_square: **/tournament opt-out**',
         ':regional_indicator_l::regional_indicator_i::regional_indicator_s::regional_indicator_t: :black_small_square: **/tournament list**',
         ':regional_indicator_i::regional_indicator_n::regional_indicator_f::regional_indicator_o: :black_small_square: **/tournament current**'
-    )] });
+    ).setFooter({ text: '30 SECONDS LEFT' })] });
 }
