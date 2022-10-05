@@ -11,5 +11,10 @@ export function register(subcommand: SlashCommandSubcommandBuilder) {
 }
 
 export function execute(interaction: CommandInteraction, tournament: Tournament) {
-
+    if (!tournament.start()) {
+        return interaction.reply({
+            content: 'There was an **error** starting the tournament.',
+            ephemeral: true
+        })
+    }
 }
