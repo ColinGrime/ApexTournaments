@@ -18,7 +18,7 @@ async function getMatchHistory(apexID: string, startTime: number): Promise<objec
  * @returns true if the player has all valid trackers equipped
  */
 export async function hasValidTrackers(apexID: string): Promise<boolean> {
-    const stats: object = await getPlayerStats(apexID);
+    const stats: object = (await getPlayerStats(apexID))['data'];
     if (!('legends' in stats) || !('selected' in stats['legends'])) {
         return false;
     }
@@ -42,7 +42,7 @@ export async function hasValidTrackers(apexID: string): Promise<boolean> {
  * @returns games, wins, kills, and damage of the specified player
  */
 export async function getGameData(apexID: string, startTime: number): Promise<GameData> {
-    const matchHistory: object[] = await getMatchHistory(apexID, startTime);
+    const matchHistory: object[] = (await getMatchHistory(apexID, startTime))['data'];
     if (Object.keys(matchHistory).length === 0) {
         return;
     }
