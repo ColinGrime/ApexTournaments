@@ -1,11 +1,11 @@
 import fs from 'node:fs';
-import { ChannelType, Guild } from 'discord.js';
+import { ChannelType, Guild, TextChannel } from 'discord.js';
 import { client } from './index.js';
 import { DiscordID, ApexID, playerIDs } from '../assets/config.js';
 import { hasValidTrackers } from './stats.js';
 import { Participant, update } from './participant.js'
 import { getTime } from './utils/common-utils.js';
-import { createChannel, renameChannel } from './utils/discord-utils.js';
+import { createChannel, createEmbed, renameChannel } from './utils/discord-utils.js';
 
 interface GuildData {
     tournamentChannelID: string,
@@ -49,7 +49,9 @@ export class Tournament {
     guild: Guild
     guildID: string
     isReady: boolean = false
-    timeToWait: number
+    isWaiting: boolean = false
+    hasStarted: boolean = false
+    timeToWait: number = 0
     tournamentTime: Timer
     participants: Participant[] = []
 
@@ -89,12 +91,20 @@ export class Tournament {
      * @returns true if a tournament was successfully created
      */
     create(): boolean {
-        if (!this.isReady) {
+        if (!this.isReady || this.isWaiting) {
             return false;
         }
 
         // Waits for 30 seconds for players to opt-in.
+        this.isWaiting = true;
         this.timeToWait = getTime(30);
+
+        setTimeout(() => {
+            if (this.isWaiting) {
+                this.start();
+            }
+        }, 30 * 1000);
+
         return true;
     }
 
@@ -102,10 +112,6 @@ export class Tournament {
      * @returns list of tournament participants that are opted-in
      */
     list() {
-        if (!this.isReady) {
-            return null;
-        }
-
         const list: DiscordID[] = [];
         for (const participant of this.participants) {
             list.push(participant.discordID);
@@ -119,7 +125,7 @@ export class Tournament {
      * @returns a promise that returns true if the player was successfully opted-in
      */
     async optIn(discord: string) {
-        if (!(discord in playerIDs)) {
+        if (!(discord in playerIDs) || !this.isWaiting) {
             return false;
         }
 
@@ -149,7 +155,7 @@ export class Tournament {
      * @returns true if the player was successfully opted-out
      */
     optOut(discord: string) {
-        if (!(discord in playerIDs)) {
+        if (!(discord in playerIDs) || !this.isWaiting) {
             return false;
         }
 
@@ -170,8 +176,11 @@ export class Tournament {
      * @returns true if the tournament had enough players to start
      */
     start() {
-        if (this.list().length < 3) {
+        if (this.list().length < 1 || !this.isWaiting || this.hasStarted) {
             return false;
+        } else {
+            this.isWaiting = false;
+            this.hasStarted = true;
         }
 
         // Start tracking.
@@ -179,21 +188,26 @@ export class Tournament {
             startTime: getTime()
         };
 
-        this.isReady = false;
+        // Announce that the tournament has started.
+        const channel: TextChannel = client.channels.cache.get(guildData[this.guildID].tournamentChannelID) as TextChannel;
+        channel.send({
+            embeds: [createEmbed('**The tournament has officially begun!**')]
+        });
+
         return true;
     }
 
     /**
      * Stops the tournament and sends tournament info.
      */
-    stop() {
-        update(this.participants, this.tournamentTime.startTime);
-
-        for (const participant of this.participants) {
-            console.log(`DiscordID${participant.discordID} and`);
-            console.log(participant.gameData);
-            console.log('');
+    async stop() {
+        if (!this.hasStarted) {
+            return;
+        } else {
+            this.hasStarted = false;
         }
+
+        await update(this.participants, this.tournamentTime.startTime);
     }
 }
 
