@@ -1,7 +1,7 @@
 import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { SlashCommandBuilder } from 'discord.js';
-import { getTournament } from '../../tournaments';
+import { getTournament } from '../../tournaments.js';
 
 // Get the path.
 import { URL } from 'url';
