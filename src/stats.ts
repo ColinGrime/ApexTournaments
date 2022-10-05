@@ -43,10 +43,6 @@ export async function hasValidTrackers(apexID: string): Promise<boolean> {
  */
 export async function getGameData(apexID: string, startTime: number): Promise<GameData> {
     const matchHistory: object[] = (await getMatchHistory(apexID, startTime))['data'];
-    if (Object.keys(matchHistory).length === 0) {
-        return;
-    }
-
     const gameData: GameData = {
         games: 0,
         wins: 0,
