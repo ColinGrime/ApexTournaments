@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { ChannelType, Guild, TextChannel } from 'discord.js';
+import { ChannelType, Guild } from 'discord.js';
 import { client } from './index.js';
 import { DiscordID, ApexID, playerIDs } from '../assets/config.js';
 import { hasValidTrackers } from './stats.js';
@@ -187,12 +187,6 @@ export class Tournament {
         this.tournamentTime = {
             startTime: getTime()
         };
-
-        // Announce that the tournament has started.
-        const channel: TextChannel = client.channels.cache.get(guildData[this.guildID].tournamentChannelID) as TextChannel;
-        channel.send({
-            embeds: [createEmbed('**The tournament has officially begun!**')]
-        });
 
         return true;
     }

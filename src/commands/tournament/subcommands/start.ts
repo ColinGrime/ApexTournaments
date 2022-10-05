@@ -1,5 +1,6 @@
 import { CommandInteraction, SlashCommandSubcommandBuilder } from 'discord.js';
-import { Tournament } from '../../../tournaments';
+import { Tournament } from '../../../tournaments.js';
+import { createEmbed } from '../../../utils/discord-utils.js';
 
 export const commandName = 'start'
 export const description = 'Automatically starts the tournament if there are enough players and they are all in VC.'
@@ -11,10 +12,14 @@ export function register(subcommand: SlashCommandSubcommandBuilder) {
 }
 
 export function execute(interaction: CommandInteraction, tournament: Tournament) {
-    if (!tournament.start()) {
+    if (tournament.start()) {
         return interaction.reply({
-            content: 'There was an **error** starting the tournament.',
-            ephemeral: true
+            embeds: [createEmbed('**The tournament has officially begun!**')]
         })
     }
+
+    return interaction.reply({
+        content: 'There was an **error** starting the tournament.',
+        ephemeral: true
+    })
 }
