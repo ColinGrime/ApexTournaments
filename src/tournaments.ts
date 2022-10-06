@@ -1,11 +1,13 @@
 import fs from 'node:fs';
-import { ChannelType, Guild } from 'discord.js';
+import { ChannelType, Guild, TextChannel } from 'discord.js';
 import { client } from './index.js';
 import { DiscordID, ApexID, playerIDs } from '../assets/config.js';
 import { hasValidTrackers } from './stats.js';
 import { Participant, update } from './participant.js'
 import { getTime } from './utils/common-utils.js';
-import { createChannel, createEmbed, renameChannel } from './utils/discord-utils.js';
+import { createChannel, renameChannel } from './utils/discord-utils.js';
+import { createRepeatingAnnouncement } from './announcements.js';
+import { createEmbed } from './utils/discord-utils.js';
 
 interface GuildData {
     tournamentChannelID: string,
@@ -48,6 +50,7 @@ function addGuildData(guildID: string, data: GuildData) {
 export class Tournament {
     guild: Guild
     guildID: string
+    channel: TextChannel
     isReady: boolean = false
     isWaiting: boolean = false
     hasStarted: boolean = false
@@ -59,13 +62,14 @@ export class Tournament {
         this.guildID = guildID;
         tournaments[guildID] = this;
 
-        // If the guild has a tournament channel/category setup, it's already ready for tournaments.
-        if (guildID in guildData) {
-            this.isReady = true;
-        }
-
         // Get Guild object.
         this.guild = client.guilds.cache.get(this.guildID);
+
+        // If the guild has a tournament channel/category setup, it's already ready for tournaments.
+        if (guildID in guildData) {
+            this.channel = this.guild.channels.cache.get(guildData[guildID].tournamentChannelID) as TextChannel;
+            this.isReady = true;
+        }
     }
 
     /**
@@ -80,7 +84,7 @@ export class Tournament {
         });
 
         // Creates Team channels in the category.
-        renameChannel(this.guild, channelID, 'Tournaments', 'News on all Apex Tournaments.');
+        this.channel = await renameChannel(this.guild, channelID, 'Tournaments', 'News on all Apex Tournaments.') as TextChannel;
         createChannel(this.guild, 'Team 1', ChannelType.GuildVoice, categoryID);
         createChannel(this.guild, 'Team 2', ChannelType.GuildVoice, categoryID);
 
@@ -99,11 +103,22 @@ export class Tournament {
         this.isWaiting = true;
         this.timeToWait = getTime(30);
 
-        setTimeout(() => {
+        createRepeatingAnnouncement(this.channel, (time: number) => {
+            return { embeds: [createEmbed(
+                    '**An apex tournament has just been created.**',
+                    '**Join now or forever be blacklisted.**',
+                    '',
+                    ':regional_indicator_j::regional_indicator_o::regional_indicator_i::regional_indicator_n: :black_small_square: **/tournament opt-in**',
+                    ':regional_indicator_q::regional_indicator_u::regional_indicator_i::regional_indicator_t: :black_small_square: **/tournament opt-out**',
+                    ':regional_indicator_l::regional_indicator_i::regional_indicator_s::regional_indicator_t: :black_small_square: **/tournament list**',
+                    ':regional_indicator_i::regional_indicator_n::regional_indicator_f::regional_indicator_o: :black_small_square: **/tournament current**'
+                ).setFooter({ text: `${time} SECONDS LEFT` })] 
+            }
+        }, () => {
             if (this.isWaiting) {
                 this.start();
             }
-        }, 30 * 1000);
+        }, 30, 10);
 
         return true;
     }
@@ -176,7 +191,7 @@ export class Tournament {
      * @returns true if the tournament had enough players to start
      */
     start() {
-        if (this.list().length < 1 || !this.isWaiting || this.hasStarted) {
+        if (this.list().length < 2 || !this.isWaiting || this.hasStarted) {
             return false;
         } else {
             this.isWaiting = false;
@@ -187,6 +202,11 @@ export class Tournament {
         this.tournamentTime = {
             startTime: getTime()
         };
+
+        // Send start message.
+        this.channel.send({
+            embeds: [createEmbed('**The tournament has officially begun!**')]
+        })
 
         return true;
     }
