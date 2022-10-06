@@ -46,5 +46,5 @@ export async function update(participants: Participant[], startTime: number) {
     }
 
     // Sort the Array in place.
-    participants.sort((a, b) => a.points - b.points);
+    participants.sort((a, b) => b.points - a.points);
 }
