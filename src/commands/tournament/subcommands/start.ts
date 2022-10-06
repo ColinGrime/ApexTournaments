@@ -14,7 +14,8 @@ export function register(subcommand: SlashCommandSubcommandBuilder) {
 export function execute(interaction: CommandInteraction, tournament: Tournament) {
     if (tournament.start()) {
         return interaction.reply({
-            embeds: [createEmbed('**The tournament has officially begun!**')]
+            content: 'Tournament has been forcefully started.',
+            ephemeral: true
         })
     }
 
