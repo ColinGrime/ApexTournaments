@@ -13,14 +13,22 @@ export function register(subcommand: SlashCommandSubcommandBuilder) {
 
 export function execute(interaction: CommandInteraction, tournament: Tournament) {
     tournament.optIn(interaction.user.id).then(success => {        
+        // User was successfully opted in.
         if (success) {
             const channel: TextChannel = interaction.channel as TextChannel;
             channel.send({
                 embeds: [createEmbed(`**${interaction.user.username} has opted into the tournament!**`)] 
+            }).catch(err => {
+                console.log(err);
             });
-        } else {
+        } 
+        
+        // User has DM's disabled.
+        else {
             interaction.user.send({
                 content: 'There was an **error** opting you into the tournament.\nAre you sure one\'s active?',
+            }).catch(() => {
+                console.log(`${interaction.user.username} has DM's disabled!`)
             });
         }
     })
