@@ -13,13 +13,20 @@ export function createRepeatingAnnouncement(channel: TextChannel, optionsCallbac
     time -= period;
     
     const interval = setInterval(() => {
+        // Stop announcements if time is over.
         if (time <= 0) {
             clearInterval(interval);
             finishCallback();
             return;
         }
 
-        channel.send(optionsCallback(time));
+        const options = optionsCallback(time);
+        if (options === null) {
+            clearInterval(interval);
+            return;
+        }
+
+        channel.send(options);
         time -= period;
     }, 1000 * period);
 }
