@@ -135,7 +135,7 @@ export class Tournament {
      * Retrieves each participant's DiscordID.
      * @returns list of tournament participants that are opted-in
      */
-    list() {
+    list(): DiscordID[] {
         const list: DiscordID[] = [];
         for (const participant of this.participants) {
             list.push(participant.discordID);
@@ -153,7 +153,7 @@ export class Tournament {
      */
     async optIn(discord: string): Promise<object> {
         if (!(discord in playerIDs)) {
-            return messages.joinTournamentFailureNotEligible;
+            return messages.failureNotEligible;
         } else if (!this.isWaiting) {
             return messages.joinTournamentFailureNotAvailable;
         }
@@ -177,6 +177,7 @@ export class Tournament {
             "apexID": apexID
         });
 
+        // Join message.
         this.channel.send({
             embeds: [createEmbed(`**<@${discordID}> has opted into the tournament!**`)] 
         }).catch(err => {
@@ -190,9 +191,11 @@ export class Tournament {
      * @param discord discordID of the player
      * @returns true if the player was successfully opted-out
      */
-    optOut(discord: string) {
-        if (!(discord in playerIDs) || !this.isWaiting) {
-            return false;
+    optOut(discord: string): object {
+        if (!(discord in playerIDs)) {
+            return messages.failureNotEligible;
+        } else if (!this.isWaiting) {
+            return messages.leaveTournamentFailureNotAvailable;
         }
 
         const discordID: DiscordID = discord as DiscordID;
@@ -200,11 +203,19 @@ export class Tournament {
         // Check if the user is not currently opted in to the tournament.
         const list = this.list();
         if (list === null || !list.includes(discordID)) {
-            return false;
+            return messages.leaveTournamentFailureNotJoined;
         }
 
         list.splice(list.indexOf(discordID), 1);
-        return true;
+
+        // Leave message.
+        this.channel.send({
+            embeds: [createEmbed(`**<@${discordID}> has opted out of the tournament!**`)] 
+        }).catch(err => {
+            console.log(err);
+        });
+
+        return null;
     }
 
     /**

@@ -13,7 +13,7 @@ export default {
         ':regional_indicator_i::regional_indicator_n::regional_indicator_f::regional_indicator_o: :black_small_square: **/tournament current**'
     ],
     createTournamentFailureNotInitialized: reply('**Error**: No tournament channel was found.'),
-    createTournamentFailureAlreadyOngoing: reply('**Error**: There is already a tournament ongoing.'),
+    createTournamentFailureAlreadyStarted: reply('**Error**: There is already a tournament ongoing.'),
     startTournamentSuccess: '**The tournament has officially begun!**',
     startTournamentForceStart: reply('The tournament has been forcefully started!'),
     startTournamentFailureNotEnoughPlayers: '**Error**: There needs to be at least 2 players to start a tournament.',
@@ -21,10 +21,13 @@ export default {
     startTournamentFailureAlreadyStarted: '**Error**: The tournament has already begun!',
     stopTournamentResponse: reply('Stopping the tournament...'),
     joinTournamentResponse: reply('Attempting to join the tournament. Please wait...'),
-    joinTournamentFailureNotEligible: reply('**Error**: You are not eligible to join any tournaments.', false),
     joinTournamentFailureNotAvailable: reply('**Error**: There are no tournaments waiting for users to join.', false),
     joinTournamentFailureAlreadyJoined: reply('**Error**: It appears you are already opted in to the tournament.', false),
     joinTournamentFailureInvalidTrackers: reply('**Error**: Your current legend needs **3 Arena** __trackers__: **Wins**, **Kills**, **Damage**.', false),
+    leaveTournamentResponse: reply('Attempting to leave the tournament. Please wait...'),
+    leaveTournamentFailureNotAvailable: reply('**Error**: There are no tournaments active.'),
+    leaveTournamentFailureNotJoined: reply('**Error**: It appears you have not yet joined the tournament.'),
+    failureNotEligible: reply('**Error**: You are not eligible to participant in tournaments.'),
     failureDirectMessagesDisabled: '%username% has Direct Messages disabled!',
 };
 
