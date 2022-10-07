@@ -264,6 +264,17 @@ export class Tournament {
     }
 
     /**
+     * Updates the current rankings.
+     */
+    async current() {
+        if (!this.hasStarted) {
+            return;
+        }
+
+        await update(this.participants, this.tournamentTime.startTime);
+    }
+
+    /**
      * Updates the tournament and checks to see if any game data has been changed.
      * @returns a Promise containing whether or the not game data has changed
      */
