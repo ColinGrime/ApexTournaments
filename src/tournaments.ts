@@ -1,23 +1,28 @@
 import fs from 'node:fs';
-import { ChannelType, Guild, TextChannel } from 'discord.js';
+import { ChannelType, Guild, TextChannel, VoiceChannel } from 'discord.js';
 import { client } from './index.js';
 import { DiscordID, ApexID, playerIDs } from '../assets/config.js';
-import { hasValidTrackers } from './stats.js';
+import { getWheel, getWheelData, hasValidTrackers } from './data-retriever.js';
 import { getRankings, Participant, update } from './participant.js'
-import { getTime } from './utils/common-utils.js';
-import { createChannel, renameChannel } from './utils/discord-utils.js';
+import { getTime, isEqual } from './utils/common-utils.js';
+import { createChannel, moveUsersToChannel, renameChannel, sendToChannel } from './utils/discord-utils.js';
 import { createRepeatingAnnouncement } from './announcements.js';
 import { createEmbed } from './utils/discord-utils.js';
 import messages from '../assets/messages.js';
 
 interface GuildData {
     tournamentChannelID: string,
-    tournamentCategoryID: string
+    tournamentVoiceChannelIDs: string[],
 }
 
 interface Timer {
     startTime: number,
     endTime?: number
+}
+
+interface Teams {
+    team1: string[],
+    team2: string[]
 }
 
 // Initialize server data and tournaments.
@@ -37,7 +42,7 @@ if (fs.existsSync('guild-data.json')) {
 
 /**
  * @param guildID guildID to be added
- * @param data guildData to be added (channelID, categoryID)
+ * @param data guildData to be added (channelID, voiceIDs)
  */
 function addGuildData(guildID: string, data: GuildData) {
     guildData[guildID] = data;
@@ -51,40 +56,51 @@ function addGuildData(guildID: string, data: GuildData) {
 export class Tournament {
     guild: Guild
     channel: TextChannel
+    voiceChannels: VoiceChannel[] = [];
     isReady: boolean = false
     isWaiting: boolean = false
     hasStarted: boolean = false
     tournamentTime: Timer
     participants: Participant[] = []
+    participantsData: Participant[][] = [];
 
     constructor(guildID: string) {
         tournaments[guildID] = this;
 
         // Get Guild object.
-        this.guild = client.guilds.cache.get(this.guild.id);
+        this.guild = client.guilds.cache.get(guildID);
 
-        // If the guild has a tournament channel/category setup, it's already ready for tournaments.
+        // If the guild has a tournament channel setup, it's already ready for tournaments.
         if (guildID in guildData) {
-            this.channel = this.guild.channels.cache.get(guildData[guildID].tournamentChannelID) as TextChannel;
+            const cache = this.guild.channels.cache;
+
+            // Get the Tournament channel and Team voice channels.
+            this.channel = cache.get(guildData[guildID].tournamentChannelID) as TextChannel;
+            this.voiceChannels.push(cache.get(guildData[guildID].tournamentVoiceChannelIDs[0]) as VoiceChannel);
+            this.voiceChannels.push(cache.get(guildData[guildID].tournamentVoiceChannelIDs[1]) as VoiceChannel);
+
+            // Tournament is ready.
             this.isReady = true;
         }
     }
 
     /**
-     * Initializes the channel and category for tournaments.
+     * Initializes the channel and voice channels for tournaments.
      * @param channelID tournament channel ID
-     * @param categoryID tournament category ID
      */
-    async init(channelID: string, categoryID: string) {
+    async init(channelID: string) {
+        // Renames Tournament text channel.
+        this.channel = await renameChannel(this.guild, channelID, 'Tournaments', 'News on all Apex Tournaments.') as TextChannel;
+        
+        // Creates new Team voice channels in the category.
+        this.voiceChannels = [];
+        this.voiceChannels.push(await createChannel(this.guild, 'Team 1', ChannelType.GuildVoice, this.channel.parentId) as VoiceChannel);
+        this.voiceChannels.push(await createChannel(this.guild, 'Team 2', ChannelType.GuildVoice, this.channel.parentId) as VoiceChannel);
+
         addGuildData(this.guild.id, {
             "tournamentChannelID": channelID,
-            "tournamentCategoryID": categoryID
+            "tournamentVoiceChannelIDs": [this.voiceChannels[0].id, this.voiceChannels[1].id],
         });
-
-        // Creates Team channels in the category.
-        this.channel = await renameChannel(this.guild, channelID, 'Tournaments', 'News on all Apex Tournaments.') as TextChannel;
-        createChannel(this.guild, 'Team 1', ChannelType.GuildVoice, categoryID);
-        createChannel(this.guild, 'Team 2', ChannelType.GuildVoice, categoryID);
 
         this.isReady = true;
     }
@@ -119,11 +135,7 @@ export class Tournament {
 
                 // Send any error messages.
                 if (message !== null) {
-                    this.channel.send({
-                        embeds: [createEmbed(message)]
-                    }).catch(err => {
-                        console.log(err);
-                    });
+                    sendToChannel(this.channel, message);
                 }
             }
         }, 60, 15);
@@ -148,10 +160,11 @@ export class Tournament {
      * Attempts to opt-in a user.
      * Will fail if the user has invalid trackers or if something is wrong with the tournament.
      * 
+     * @param username username of the player
      * @param discord discordID of the player
      * @returns a Promise returning the status message
      */
-    async optIn(discord: string): Promise<object> {
+    async optIn(username: string, discord: string): Promise<object> {
         if (!(discord in playerIDs)) {
             return messages.failureNotEligible;
         } else if (!this.isWaiting) {
@@ -173,17 +186,19 @@ export class Tournament {
         }
 
         this.participants.push({
+            "username": username,
             "discordID": discordID,
-            "apexID": apexID
+            "apexID": apexID,
+            "gameData": {
+                "games": 0,
+                "wins": 0,
+                "kills": 0,
+                "damage": 0
+            },
+            "points": 0
         });
 
-        // Join message.
-        this.channel.send({
-            embeds: [createEmbed(`**<@${discordID}> has opted into the tournament!**`)] 
-        }).catch(err => {
-            console.log(err);
-        });
-
+        sendToChannel(this.channel, `**<@${discordID}> has opted into the tournament!**`);
         return null;
     }
 
@@ -194,8 +209,10 @@ export class Tournament {
     optOut(discord: string): object {
         if (!(discord in playerIDs)) {
             return messages.failureNotEligible;
-        } else if (!this.isWaiting) {
+        } else if (!this.isWaiting && !this.hasStarted) {
             return messages.leaveTournamentFailureNotAvailable;
+        } else if (this.hasStarted) {
+            return messages.leaveTournamentFailureAlreadyStarted;
         }
 
         const discordID: DiscordID = discord as DiscordID;
@@ -206,15 +223,20 @@ export class Tournament {
             return messages.leaveTournamentFailureNotJoined;
         }
 
-        list.splice(list.indexOf(discordID), 1);
+        // Find participant to remove.
+        let participantToRemove = null;
+        for (const participant of this.participants) {
+            if (participant.discordID === discordID) {
+                participantToRemove = participant;
+            }
+        }
 
-        // Leave message.
-        this.channel.send({
-            embeds: [createEmbed(`**<@${discordID}> has opted out of the tournament!**`)] 
-        }).catch(err => {
-            console.log(err);
-        });
+        // Remove participant.
+        if (participantToRemove !== null) {
+            this.participants.splice(this.participants.indexOf(participantToRemove), 1);
+        }
 
+        sendToChannel(this.channel, `**<@${discordID}> has opted out of the tournament!**`);
         return null;
     }
 
@@ -240,27 +262,54 @@ export class Tournament {
         };
 
         // Send start message.
-        this.channel.send({
-            embeds: [createEmbed(messages.startTournamentSuccess)]
-        }).catch(err => {
-            console.log(err);
-        });
+        sendToChannel(this.channel, messages.startTournamentSuccess);
+
+        // Start tournament update checker.
+        const interval = setInterval(() => {
+            if (!this.hasStarted) {
+                clearInterval(interval);
+                return;
+            }
+
+            this.update();
+        }, 30 * 1000);
 
         return null;
     }
 
     /**
      * Stops the tournament, updates and saves rankings, and deletes the tournament.
-     * @returns 
      */
     async stop() {
         if (!this.hasStarted) {
             return;
-        } else {
-            this.hasStarted = false;
         }
 
-        await update(this.participants, this.tournamentTime.startTime);
+        // Get end time and update rankings.
+        this.tournamentTime.endTime = getTime();
+        await this.update('**Final Rankings:**', true);
+
+        const tournamentData = {
+            "guildID": this.guild.id,
+            "startTime": this.tournamentTime.startTime,
+            "endTime": this.tournamentTime.endTime,
+            "data": this.participantsData
+        }
+
+        // Make tournaments folder if one does not exist.
+        if (!fs.existsSync('tournaments')) {
+            fs.mkdirSync('tournaments');
+        }
+
+        // Save all tournament data.
+        fs.writeFile(`tournaments/${new Date()}.json`, JSON.stringify(tournamentData, null, 2), 'utf-8', (err) => {
+            if (err) {
+                throw err;
+            } else {
+                // Delete tournament.
+                delete tournaments[this.guild.id];
+            }
+        });
     }
 
     /**
@@ -276,19 +325,143 @@ export class Tournament {
 
     /**
      * Updates the tournament and checks to see if any game data has been changed.
-     * @returns a Promise containing whether or the not game data has changed
+     * If new data is found, it will announce the new rankings.
+     * 
+     * @param title title of the embed
+     * @param forceSend whether embed should be sent regardless if it's new data
      */
-    async update(): Promise<boolean> {
+    async update(title: string = "**New Rankings Found:**", forceSend: boolean = false) {
         if (!this.hasStarted) {
-            return false;
+            return;
         }
 
-        // Get old rankings then update all participants looking for new game data.
-        const oldRankings = getRankings(this.participants);
+        // Get old rankings, update all participants, then get new rankings.
+        const oldRankings: string[] = getRankings(this.participants);
         await update(this.participants, this.tournamentTime.startTime);
+        const newRankings: string[] = getRankings(this.participants);
 
-        // Check to see if the rankings have changed.
-        return oldRankings !== getRankings(this.participants);
+        // Announce new rankings if they have changed.
+        if (forceSend || !isEqual(oldRankings, newRankings)) {
+            sendToChannel(this.channel, title, ...newRankings);
+
+            // Save data if it's new.
+            if (!isEqual(oldRankings, newRankings)) {
+                this.participantsData.push([...this.participants]);
+            }
+        }
+    }
+
+    /**
+     * Attempts to split the participants up into 2 teams.
+     * @returns status message
+     */
+    split() {
+        if (this.participants.length === 0) {
+            return messages.splitParticipantsFailureNotAvailable;
+        }
+
+        const participantIDs: string[] = [...this.participants].map(p => p.discordID);
+
+        // Check each voice channel for all participants.
+        for (const voiceChannel of this.voiceChannels) {
+            for (const member of voiceChannel.members.values()) {
+                if (participantIDs.includes(member.user.id)) {
+                    participantIDs.splice(participantIDs.indexOf(member.user.id), 1);
+                }
+            }
+        }
+
+        // Check if some of the participants aren't in a Team Voice Channel.
+        if (participantIDs.length !== 0) {
+            return messages.splitParticipantsFailureNotEnoughPlayers;
+        }
+
+        // Get all usernames and their corresponding IDs.
+        const users: object = {};
+        for (const participant of this.participants) {
+            users[participant.username] = participant.discordID;
+        }
+
+        const usernames = Object.keys(users);
+        const tournament = this;
+
+        // Starting the splitting wheel.
+        getWheel(usernames).then(data => {
+            const link = data.request.res.responseUrl;
+
+            // Send wheel announcement.
+            sendToChannel(this.channel, '__Commencing the splitting wheel__', `**${link}**`);
+
+            // Check for wheel completion.
+            let timesToCheck = 3;
+
+            // Check for wheel data every 5 seconds after predicted completion is over.
+            setTimeout(() => {
+                const interval = setInterval(async () => {
+                    if (timesToCheck-- === 0) {
+                        sendToChannel(this.channel, '**Error**: Splitting stopped. Wheel took too long to pick.');
+                        clearInterval(interval);
+                        return;
+                    }
+
+                    const wheelData = await getWheelData(link);
+                    if (wheelData !== null) {
+                        processWheelData(wheelData);
+                        clearInterval(interval);
+                    }
+                }, 5 * 1000);
+            }, (usernames.length * 10 * 1000) + 5)
+        })
+
+        /**
+         * Process the wheel data.
+         * @param wheelData team data from the wheel
+         */
+        function processWheelData(wheelData: object) {
+            const teams: Teams = {
+                team1: [],
+                team2: []
+            };
+
+            const teamsFormatted: Teams = {
+                team1: [],
+                team2: []
+            }
+
+            // Find teams for each user.
+            for (const user in users) {
+                checkTeam(teams, user, wheelData, 'team1');
+                checkTeam(teams, user, wheelData, 'team2');
+            }
+
+            // Format the teams.
+            for (const team in teams) {
+                for (const user of teams[team]) {
+                    teamsFormatted[team].push(`<@${user}>`);
+                }
+            }
+
+            moveUsersToChannel(tournament.voiceChannels[0], ...teams.team1);
+            moveUsersToChannel(tournament.voiceChannels[1], ...teams.team2);
+            sendToChannel(tournament.channel, '__Teams have been decided:__', `**Team #1**: ${teamsFormatted.team1}`, `**Team #2**: ${teamsFormatted.team2}`)
+        }
+
+        /**
+         * Checks if a user is on a team.
+         * @param teams list of teams
+         * @param user user to check
+         * @param wheelData wheel data
+         * @param team team to check against
+         */
+        function checkTeam(teams: Teams, user: string, wheelData: object, team: string) {
+            for (const username of wheelData[team]) {
+                if (user === username) {
+                    teams[team].push(users[user]);
+                }
+            }
+        }
+
+        return messages.splitParticipantsResponse;
     }
 }
 
