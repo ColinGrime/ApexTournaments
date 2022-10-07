@@ -126,5 +126,6 @@ node_modules
 # Ignore JS files.
 **/*.js
 
-# Data file.
+# Data files.
 guild-data.json
+tournaments
