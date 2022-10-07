@@ -18,7 +18,9 @@ const dirname = new URL('.', import.meta.url).pathname;
 
 // Create a new client instance
 export const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
-client.user.setActivity("Watching all Apex stats...");
+client.on('ready', () => {
+    client.user.setActivity("Stalking stats...");
+})
 
 // Get all commands.
 client.commands = new Collection();
