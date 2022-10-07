@@ -3,7 +3,7 @@ import { ChannelType, Guild, TextChannel } from 'discord.js';
 import { client } from './index.js';
 import { DiscordID, ApexID, playerIDs } from '../assets/config.js';
 import { hasValidTrackers } from './stats.js';
-import { Participant, update } from './participant.js'
+import { getRankings, Participant, update } from './participant.js'
 import { getTime } from './utils/common-utils.js';
 import { createChannel, renameChannel } from './utils/discord-utils.js';
 import { createRepeatingAnnouncement } from './announcements.js';
@@ -50,21 +50,18 @@ function addGuildData(guildID: string, data: GuildData) {
 
 export class Tournament {
     guild: Guild
-    guildID: string
     channel: TextChannel
     isReady: boolean = false
     isWaiting: boolean = false
     hasStarted: boolean = false
-    timeToWait: number = 0
     tournamentTime: Timer
     participants: Participant[] = []
 
     constructor(guildID: string) {
-        this.guildID = guildID;
         tournaments[guildID] = this;
 
         // Get Guild object.
-        this.guild = client.guilds.cache.get(this.guildID);
+        this.guild = client.guilds.cache.get(this.guild.id);
 
         // If the guild has a tournament channel/category setup, it's already ready for tournaments.
         if (guildID in guildData) {
@@ -79,7 +76,7 @@ export class Tournament {
      * @param categoryID tournament category ID
      */
     async init(channelID: string, categoryID: string) {
-        addGuildData(this.guildID, {
+        addGuildData(this.guild.id, {
             "tournamentChannelID": channelID,
             "tournamentCategoryID": categoryID
         });
@@ -93,7 +90,8 @@ export class Tournament {
     }
 
     /**
-     * @returns true if a tournament was successfully created
+     * Creates a new tournament and schedules the announcements.
+     * @returns status message
      */
     create(): object {
         if (!this.isReady) {
@@ -102,11 +100,16 @@ export class Tournament {
             return messages.createTournamentFailureAlreadyOngoing;
         }
 
-        // Waits for 30 seconds for players to opt-in.
+        // Wait for tournament to start.
         this.isWaiting = true;
-        this.timeToWait = getTime(30);
 
         createRepeatingAnnouncement(this.channel, (time: number) => {
+            // If tournament has already started, signal for announcements to stop.
+            if (this.hasStarted) {
+                return null;
+            }
+
+            // Return announcement embed.
             return { 
                 embeds: [createEmbed(...messages.createTournamentSuccess).setFooter({ text: `${time} SECONDS LEFT` })] 
             }
@@ -123,12 +126,13 @@ export class Tournament {
                     });
                 }
             }
-        }, 30, 10);
+        }, 60, 15);
 
         return messages.createTournamentResponse;
     }
 
     /**
+     * Retrieves each participant's DiscordID.
      * @returns list of tournament participants that are opted-in
      */
     list() {
@@ -141,8 +145,11 @@ export class Tournament {
     }
 
     /**
+     * Attempts to opt-in a user.
+     * Will fail if the user has invalid trackers or if something is wrong with the tournament.
+     * 
      * @param discord discordID of the player
-     * @returns a promise that returns true if the player was successfully opted-in
+     * @returns a Promise returning the status message
      */
     async optIn(discord: string): Promise<object> {
         if (!(discord in playerIDs)) {
@@ -201,8 +208,8 @@ export class Tournament {
     }
 
     /**
-     * Starts a tournament.
-     * @returns true if the tournament had enough players to start
+     * Starts a tournament and sets the start time for tracking.
+     * @returns status message
      */
     start(): string {
         if (this.list().length < 2) {
@@ -232,7 +239,8 @@ export class Tournament {
     }
 
     /**
-     * Stops the tournament and sends tournament info.
+     * Stops the tournament, updates and saves rankings, and deletes the tournament.
+     * @returns 
      */
     async stop() {
         if (!this.hasStarted) {
@@ -243,8 +251,32 @@ export class Tournament {
 
         await update(this.participants, this.tournamentTime.startTime);
     }
+
+    /**
+     * Updates the tournament and checks to see if any game data has been changed.
+     * @returns a Promise containing whether or the not game data has changed
+     */
+    async update(): Promise<boolean> {
+        if (!this.hasStarted) {
+            return false;
+        }
+
+        // Get old rankings then update all participants looking for new game data.
+        const oldRankings = getRankings(this.participants);
+        await update(this.participants, this.tournamentTime.startTime);
+
+        // Check to see if the rankings have changed.
+        return oldRankings !== getRankings(this.participants);
+    }
 }
 
+/**
+ * Gets the tournament of the specified guild.
+ * If none are found, a new tournament instance is created.
+ * 
+ * @param guildID guildID to check
+ * @returns tournament of the specified guild
+ */
 export function getTournament(guildID: string) {
     if (guildID in tournaments) {
         return tournaments[guildID];
