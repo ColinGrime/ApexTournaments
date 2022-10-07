@@ -2,6 +2,7 @@ import { CommandInteraction, SlashCommandSubcommandBuilder, TextChannel } from '
 import { Participant } from '../../../participant.js';
 import { Tournament } from '../../../tournaments.js';
 import { createEmbed } from '../../../utils/discord-utils.js';
+import messages from '../../../../assets/messages.js';
 
 export const commandName = 'stop'
 export const description = 'Stops the tournament and displays the top kills, damage, and top overall!'
@@ -32,8 +33,5 @@ export async function execute(interaction: CommandInteraction, tournament: Tourn
         });
     })
 
-    return interaction.reply({
-        content: '*Stopping the tournament...*',
-        ephemeral: true
-    });
+    return interaction.reply(messages.stopTournamentResponse);
 }

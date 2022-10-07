@@ -8,6 +8,7 @@ import { getTime } from './utils/common-utils.js';
 import { createChannel, renameChannel } from './utils/discord-utils.js';
 import { createRepeatingAnnouncement } from './announcements.js';
 import { createEmbed } from './utils/discord-utils.js';
+import messages from '../assets/messages.js';
 
 interface GuildData {
     tournamentChannelID: string,
@@ -94,9 +95,11 @@ export class Tournament {
     /**
      * @returns true if a tournament was successfully created
      */
-    create(): boolean {
-        if (!this.isReady || this.isWaiting) {
-            return false;
+    create(): object {
+        if (!this.isReady) {
+            return messages.createTournamentFailureNotInitialized;
+        } else if (this.isWaiting) {
+            return messages.createTournamentFailureAlreadyOngoing;
         }
 
         // Waits for 30 seconds for players to opt-in.
@@ -104,23 +107,25 @@ export class Tournament {
         this.timeToWait = getTime(30);
 
         createRepeatingAnnouncement(this.channel, (time: number) => {
-            return { embeds: [createEmbed(
-                    '**An apex tournament has just been created.**',
-                    '**Join now or forever be blacklisted.**',
-                    '',
-                    ':regional_indicator_j::regional_indicator_o::regional_indicator_i::regional_indicator_n: :black_small_square: **/tournament opt-in**',
-                    ':regional_indicator_q::regional_indicator_u::regional_indicator_i::regional_indicator_t: :black_small_square: **/tournament opt-out**',
-                    ':regional_indicator_l::regional_indicator_i::regional_indicator_s::regional_indicator_t: :black_small_square: **/tournament list**',
-                    ':regional_indicator_i::regional_indicator_n::regional_indicator_f::regional_indicator_o: :black_small_square: **/tournament current**'
-                ).setFooter({ text: `${time} SECONDS LEFT` })] 
+            return { 
+                embeds: [createEmbed(...messages.createTournamentSuccess).setFooter({ text: `${time} SECONDS LEFT` })] 
             }
         }, () => {
             if (this.isWaiting) {
-                this.start();
+                const message = this.start();
+
+                // Send any error messages.
+                if (message !== null) {
+                    this.channel.send({
+                        embeds: [createEmbed(message)]
+                    }).catch(err => {
+                        console.log(err);
+                    });
+                }
             }
         }, 30, 10);
 
-        return true;
+        return messages.createTournamentResponse;
     }
 
     /**
@@ -139,9 +144,11 @@ export class Tournament {
      * @param discord discordID of the player
      * @returns a promise that returns true if the player was successfully opted-in
      */
-    async optIn(discord: string) {
-        if (!(discord in playerIDs) || !this.isWaiting) {
-            return false;
+    async optIn(discord: string): Promise<object> {
+        if (!(discord in playerIDs)) {
+            return messages.joinTournamentFailureNotEligible;
+        } else if (!this.isWaiting) {
+            return messages.joinTournamentFailureNotAvailable;
         }
 
         const discordID: DiscordID = discord as DiscordID;
@@ -150,19 +157,26 @@ export class Tournament {
         // Check if the user is already opted in to the tournament.
         const list = this.list();
         if (list === null || list.includes(discordID)) {
-            return false;
+            return messages.joinTournamentFailureAlreadyJoined;
         }
 
         // Check if the user has invalid trackers enabled.
         if (!(await hasValidTrackers(apexID))) {
-            return false;
+            return messages.joinTournamentFailureInvalidTrackers;
         }
 
         this.participants.push({
             "discordID": discordID,
             "apexID": apexID
         });
-        return true;
+
+        this.channel.send({
+            embeds: [createEmbed(`**<@${discordID}> has opted into the tournament!**`)] 
+        }).catch(err => {
+            console.log(err);
+        });
+
+        return null;
     }
 
     /**
@@ -190,9 +204,13 @@ export class Tournament {
      * Starts a tournament.
      * @returns true if the tournament had enough players to start
      */
-    start() {
-        if (this.list().length < 2 || !this.isWaiting || this.hasStarted) {
-            return false;
+    start(): string {
+        if (this.list().length < 2) {
+            return messages.startTournamentFailureNotEnoughPlayers;
+        } else if (!this.isWaiting) {
+            return messages.startTournamentFailureNotAvailable;
+        } else if (this.hasStarted) {
+            return messages.startTournamentFailureAlreadyStarted;
         } else {
             this.isWaiting = false;
             this.hasStarted = true;
@@ -205,10 +223,12 @@ export class Tournament {
 
         // Send start message.
         this.channel.send({
-            embeds: [createEmbed('**The tournament has officially begun!**')]
-        })
+            embeds: [createEmbed(messages.startTournamentSuccess)]
+        }).catch(err => {
+            console.log(err);
+        });
 
-        return true;
+        return null;
     }
 
     /**

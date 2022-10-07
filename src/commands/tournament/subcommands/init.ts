@@ -1,4 +1,5 @@
 import { CommandInteraction, SlashCommandSubcommandBuilder } from 'discord.js'
+import messages from '../../../../assets/messages.js'
 import { Tournament } from '../../../tournaments.js'
 
 export const commandName = 'init'
@@ -12,8 +13,5 @@ export function register(subcommand: SlashCommandSubcommandBuilder) {
 
 export async function execute(interaction: CommandInteraction, tournament: Tournament) {
     await tournament.init(interaction.channelId, interaction.channel.parentId);
-    return interaction.reply({
-        content: 'Channel has been set as Tournament channel.',
-        ephemeral: true
-    })
+    return interaction.reply(messages.initializeTournament);
 }
