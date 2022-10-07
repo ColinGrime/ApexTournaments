@@ -97,7 +97,7 @@ export class Tournament {
         if (!this.isReady) {
             return messages.createTournamentFailureNotInitialized;
         } else if (this.isWaiting) {
-            return messages.createTournamentFailureAlreadyOngoing;
+            return messages.createTournamentFailureAlreadyStarted;
         }
 
         // Wait for tournament to start.
