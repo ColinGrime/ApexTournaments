@@ -346,7 +346,7 @@ export class Tournament {
 
             // Save data if it's new.
             if (!isEqual(oldRankings, newRankings)) {
-                this.participantsData.push([...this.participants]);
+                this.participantsData.push(structuredClone(this.participants));
             }
         }
     }
@@ -373,6 +373,9 @@ export class Tournament {
 
         // Check if some of the participants aren't in a Team Voice Channel.
         if (participantIDs.length !== 0) {
+            console.log(participantIDs);
+            console.log(this.voiceChannels[0].members);
+            console.log(this.voiceChannels[0].members);
             return messages.splitParticipantsFailureNotEnoughPlayers;
         }
 
