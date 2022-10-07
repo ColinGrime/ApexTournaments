@@ -18,7 +18,7 @@ export default {
     startTournamentForceStart: reply('The tournament has been forcefully started!'),
     startTournamentFailureNotEnoughPlayers: '**Error**: There needs to be at least 2 players to start a tournament.',
     startTournamentFailureNotAvailable: '**Error**: No tournaments are available to start.',
-    startTournamentFailureAlreadyStarted: '**Error**: The tournament has already begun!',
+    startTournamentFailureAlreadyStarted: '**Error**: The tournament has already begun.',
     stopTournamentResponse: reply('Stopping the tournament...'),
     joinTournamentResponse: reply('Attempting to join the tournament. Please wait...'),
     joinTournamentFailureNotAvailable: reply('**Error**: There are no tournaments waiting for users to join.', false),
@@ -27,8 +27,12 @@ export default {
     leaveTournamentResponse: reply('Attempting to leave the tournament. Please wait...'),
     leaveTournamentFailureNotAvailable: reply('**Error**: There are no tournaments active.'),
     leaveTournamentFailureNotJoined: reply('**Error**: It appears you have not yet joined the tournament.'),
+    leaveTournamentFailureAlreadyStarted: reply('**Error**: You cannot leave a tournament once one has begun.'),
+    splitParticipantsResponse: reply('Starting the splitting process...'),
+    splitParticipantsFailureNotAvailable: reply('**Error**: There are no participants to split up.'),
+    splitParticipantsFailureNotEnoughPlayers: reply('**Error**: Some of the participants are not in one of the Team Voice Channels.'),
     failureNotEligible: reply('**Error**: You are not eligible to participant in tournaments.'),
-    failureDirectMessagesDisabled: '%username% has Direct Messages disabled!',
+    failureDirectMessagesDisabled: '%username% has Direct Messages disabled.',
 };
 
 /**
