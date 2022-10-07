@@ -1,7 +1,5 @@
-import { CommandInteraction, SlashCommandSubcommandBuilder, TextChannel } from 'discord.js';
-import { getRankings } from '../../../participant.js';
+import { CommandInteraction, SlashCommandSubcommandBuilder } from 'discord.js';
 import { Tournament } from '../../../tournaments.js';
-import { createEmbed } from '../../../utils/discord-utils.js';
 import messages from '../../../../assets/messages.js';
 
 export const commandName = 'stop'
@@ -13,12 +11,8 @@ export function register(subcommand: SlashCommandSubcommandBuilder) {
         .setDescription(description)
 }
 
-export async function execute(interaction: CommandInteraction, tournament: Tournament) {
-    tournament.stop().then(() => {
-        tournament.channel.send({
-            embeds: [createEmbed("**Final Rankings:**", ...getRankings(tournament.participants))],
-        });
-    }).catch(err => {
+export function execute(interaction: CommandInteraction, tournament: Tournament) {
+    tournament.stop().catch(err => {
         console.log(err);
     })
 

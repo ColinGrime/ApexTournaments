@@ -12,6 +12,6 @@ export function register(subcommand: SlashCommandSubcommandBuilder) {
 }
 
 export async function execute(interaction: CommandInteraction, tournament: Tournament) {
-    await tournament.init(interaction.channelId, interaction.channel.parentId);
+    await tournament.init(interaction.channelId);
     return interaction.reply(messages.initializeTournament);
 }

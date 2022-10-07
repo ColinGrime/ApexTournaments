@@ -12,7 +12,7 @@ export function register(subcommand: SlashCommandSubcommandBuilder) {
 }
 
 export function execute(interaction: CommandInteraction, tournament: Tournament) {
-    tournament.optIn(interaction.user.id).then(res => {        
+    tournament.optIn(interaction.user.username, interaction.user.id).then(res => {        
         if (res === null) {
             return;
         }
