@@ -393,7 +393,7 @@ export class Tournament {
             const link = data.request.res.responseUrl;
 
             // Send wheel announcement.
-            sendToChannel(this.channel, '__Commencing the splitting wheel__', `**${link}**`);
+            sendToChannel(this.channel, '__Commencing the splitting wheel:__', `**${link}**`);
 
             // Check for wheel completion.
             let timesToCheck = 3;
@@ -446,7 +446,7 @@ export class Tournament {
 
             moveUsersToChannel(tournament.voiceChannels[0], ...teams.team1);
             moveUsersToChannel(tournament.voiceChannels[1], ...teams.team2);
-            sendToChannel(tournament.channel, '__Teams have been decided:__', `**Team #1**: ${teamsFormatted.team1}`, `**Team #2**: ${teamsFormatted.team2}`)
+            sendToChannel(tournament.channel, '__Teams have been decided:__', `:black_small_square: **Team #1**: ${teamsFormatted.team1}`, `:black_small_square: **Team #2**: ${teamsFormatted.team2}`)
         }
 
         /**
