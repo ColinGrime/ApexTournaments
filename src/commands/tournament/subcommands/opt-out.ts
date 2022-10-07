@@ -1,6 +1,6 @@
 import { CommandInteraction, SlashCommandSubcommandBuilder } from 'discord.js';
-import { Tournament } from '../../../tournaments';
-import messages from '../../../../assets/messages';
+import { Tournament } from '../../../tournaments.js';
+import messages from '../../../../assets/messages.js';
 
 export const commandName = 'opt-out'
 export const description = 'Opt-out of a tournmanet if you are in one.'
