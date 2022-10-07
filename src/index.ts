@@ -18,8 +18,10 @@ const dirname = new URL('.', import.meta.url).pathname;
 
 // Create a new client instance
 export const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
-client.commands = new Collection();
+client.user.setActivity("Watching all Apex stats...");
 
+// Get all commands.
+client.commands = new Collection();
 getCommands().then(commands => {
     let command: any;
     for (command of commands) {
