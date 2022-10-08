@@ -1,4 +1,5 @@
 # Apex Tournaments (through Discord!)
+**Note: This project is not for public use yet due to API restraints.**
 
 Host your very own Apex tournaments with your friends through Discord!  
 Start a tournament and have your Apex stats tracked and ranked against each participant.
