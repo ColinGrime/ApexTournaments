@@ -36,3 +36,7 @@ Apex tournaments are ranked based off points:
 * /tournament split
     * Randomly splits the players in half until each team has 3 or less players.
     * Moves the players into the specified VC calls.
+
+## Photos
+![Main Announcement](/assets/Main.png)
+![Final Rankings](/assets/Rankings.png)
