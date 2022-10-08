@@ -355,7 +355,7 @@ export class Tournament {
      * Attempts to split the participants up into 2 teams.
      * @returns status message
      */
-    split() {
+    async split() {
         if (this.participants.length === 0) {
             return messages.splitParticipantsFailureNotAvailable;
         }
@@ -364,7 +364,7 @@ export class Tournament {
 
         // Check each voice channel for all participants.
         for (const voiceChannel of this.voiceChannels) {
-            for (const member of voiceChannel.members.values()) {
+            for (const member of (await voiceChannel.fetch(true)).members.values()) {
                 if (participantIDs.includes(member.user.id)) {
                     participantIDs.splice(participantIDs.indexOf(member.user.id), 1);
                 }
@@ -375,7 +375,7 @@ export class Tournament {
         if (participantIDs.length !== 0) {
             console.log(participantIDs);
             console.log(this.voiceChannels[0].members);
-            console.log(this.voiceChannels[0].members);
+            console.log(this.voiceChannels[1].members);
             return messages.splitParticipantsFailureNotEnoughPlayers;
         }
 

@@ -10,6 +10,6 @@ export function register(subcommand: SlashCommandSubcommandBuilder) {
         .setDescription(description)
 }
 
-export function execute(interaction: CommandInteraction, tournament: Tournament) {
-    return interaction.reply(tournament.split());
+export async function execute(interaction: CommandInteraction, tournament: Tournament) {
+    return interaction.reply(await tournament.split());
 }
