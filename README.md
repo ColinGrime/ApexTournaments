@@ -4,6 +4,11 @@
 Host your very own Apex tournaments with your friends through Discord!  
 Start a tournament and have your Apex stats tracked and ranked against each participant.
 
+## Features
+- Once a tournament has started, rankings will auto-update as games are finished.
+- Ability to easily split teams if you have more than 3 players in a tournament.
+- Rankings are based off a point system specified below.
+
 ## Rankings
 Apex tournaments are ranked based off points:
 - 3 points for each win.
